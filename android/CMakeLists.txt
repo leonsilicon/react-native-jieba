@@ -18,6 +18,8 @@ set_target_properties(
 target_include_directories(
     react-native-jieba    PUBLIC
     ../cpp
+    ../cpp/cppjieba/include
+    ../cpp/cppjieba/deps/limonp/include
 )
 
 target_link_libraries(

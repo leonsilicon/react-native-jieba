@@ -1,7 +1,7 @@
 {
   "name": "react-native-jieba",
   "version": "0.1.0",
-  "description": "Jieba for React Native",
+  "description": "Native Chinese text segmentation for React Native, powered by cppjieba.",
   "main": "./lib/module/index.js",
   "types": "./lib/typescript/src/index.d.ts",
   "exports": {
@@ -15,17 +15,25 @@
   "files": [
     "src",
     "lib",
-    "android",
-    "ios",
-    "cpp",
+    "android/build.gradle",
+    "android/CMakeLists.txt",
+    "android/generated",
+    "android/src",
+    "ios/OnLoad.mm",
+    "ios/generated",
+    "cpp/JiebaImpl.h",
+    "cpp/JiebaImpl.cpp",
+    "cpp/cppjieba/LICENSE",
+    "cpp/cppjieba/include/cppjieba",
+    "cpp/cppjieba/deps/limonp/LICENSE",
+    "cpp/cppjieba/deps/limonp/include/limonp",
+    "cpp/cppjieba/dict/jieba.dict.utf8",
+    "cpp/cppjieba/dict/hmm_model.utf8",
+    "cpp/cppjieba/dict/idf.utf8",
+    "cpp/cppjieba/dict/stop_words.utf8",
+    "cpp/cppjieba/dict/user.dict.utf8",
     "*.podspec",
     "react-native.config.js",
-    "!ios/build",
-    "!android/build",
-    "!android/gradle",
-    "!android/gradlew",
-    "!android/gradlew.bat",
-    "!android/local.properties",
     "!**/__tests__",
     "!**/__fixtures__",
     "!**/__mocks__",
@@ -45,7 +53,14 @@
   "keywords": [
     "react-native",
     "ios",
-    "android"
+    "android",
+    "turbo-module",
+    "jieba",
+    "cppjieba",
+    "chinese",
+    "segmentation",
+    "tokenizer",
+    "nlp"
   ],
   "repository": {
     "type": "git",
@@ -90,8 +105,8 @@
     "typescript": "^6.0.2"
   },
   "peerDependencies": {
-    "react": "*",
-    "react-native": "*"
+    "react": ">=18.0.0",
+    "react-native": ">=0.85.0"
   },
   "workspaces": [
     "example"

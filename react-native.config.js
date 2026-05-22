@@ -9,6 +9,8 @@ module.exports = {
         cxxModuleCMakeListsModuleName: 'react-native-jieba',
         cxxModuleCMakeListsPath: 'CMakeLists.txt',
         cxxModuleHeaderName: 'JiebaImpl',
+        packageImportPath: 'import com.jieba.JiebaPackage;',
+        packageInstance: 'new JiebaPackage()',
       },
     },
   },

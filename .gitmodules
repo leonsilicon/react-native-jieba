@@ -1,0 +1,3 @@
+[submodule "cpp/cppjieba"]
+	path = cpp/cppjieba
+	url = https://github.com/yanyiwu/cppjieba.git
