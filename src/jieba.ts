@@ -11,10 +11,7 @@ export function cutAll(sentence: string): string[] {
   return Jieba.cutAll(sentence);
 }
 
-export function cutForSearch(
-  sentence: string,
-  hmm: boolean = true
-): string[] {
+export function cutForSearch(sentence: string, hmm: boolean = true): string[] {
   return Jieba.cutForSearch(sentence, hmm);
 }
 

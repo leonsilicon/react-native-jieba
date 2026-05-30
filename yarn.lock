@@ -8917,6 +8917,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"jieba-wasm@npm:^2.4.0":
+  version: 2.4.0
+  resolution: "jieba-wasm@npm:2.4.0"
+  checksum: 10c0/ea55d15ad2fec3b34838dffceb1b8341377facc592095c9094c065115b3a2635094724f7ced5ebb15e84d07f97960a2fa19755b2257e8040e5c61d36a0e083b3
+  languageName: node
+  linkType: hard
+
 "jiti@npm:2.6.1":
   version: 2.6.1
   resolution: "jiti@npm:2.6.1"
@@ -10940,6 +10947,7 @@ __metadata:
     "@react-native/typescript-config": "npm:0.85.0"
     "@types/react": "npm:^19.2.0"
     "@vitejs/plugin-react": "npm:^5.0.0"
+    jieba-wasm: "npm:^2.4.0"
     react: "npm:19.2.3"
     react-dom: "npm:19.2.3"
     react-native: "npm:0.85.0"
@@ -10973,6 +10981,7 @@ __metadata:
     eslint-plugin-ft-flow: "npm:^3.0.11"
     eslint-plugin-prettier: "npm:^5.5.5"
     jest: "npm:^30.3.0"
+    jieba-wasm: "npm:^2.4.0"
     lefthook: "npm:^2.1.4"
     prettier: "npm:^3.8.1"
     react: "npm:19.2.3"
@@ -10983,8 +10992,12 @@ __metadata:
     turbo: "npm:^2.8.21"
     typescript: "npm:^6.0.2"
   peerDependencies:
-    react: "*"
-    react-native: "*"
+    jieba-wasm: ">=2.0.0"
+    react: ">=18.0.0"
+    react-native: ">=0.85.0"
+  peerDependenciesMeta:
+    jieba-wasm:
+      optional: true
   languageName: unknown
   linkType: soft
 

@@ -11,5 +11,12 @@ export default defineConfig((env) =>
       },
       dedupe: Object.keys(pack.peerDependencies),
     },
+    // jieba-wasm's `web` build resolves its `.wasm` via `import.meta.url`. If
+    // Vite pre-bundles it into `.vite/deps`, the binary isn't copied alongside
+    // the JS and the fetch 404s. Excluding it keeps the package served from its
+    // own directory so the relative wasm URL resolves correctly.
+    optimizeDeps: {
+      exclude: ['jieba-wasm'],
+    },
   })
 );

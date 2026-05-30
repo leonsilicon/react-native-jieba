@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ScrollView, Text, View, StyleSheet } from 'react-native';
+import { Platform, ScrollView, Text, View, StyleSheet } from 'react-native';
 import {
   cut,
   cutAll,
@@ -10,8 +10,7 @@ import {
 } from 'react-native-jieba';
 
 const sentence = '我来到北京清华大学';
-const longer =
-  '小明硕士毕业于中国科学院计算所，后在日本京都大学深造';
+const longer = '小明硕士毕业于中国科学院计算所，后在日本京都大学深造';
 const tagSentence =
   '我是拖拉机学院手扶拖拉机专业的。不用多久，我就会升职加薪，当上CEO，走上人生巅峰。';
 
@@ -48,9 +47,13 @@ export default function App() {
           tag: tag(tagSentence)
             .map((t) => `${t.word}:${t.tag}`)
             .join(' '),
-          extract: extract(tagSentence, 5)
-            .map((k) => `${k.word} (${k.weight.toFixed(2)})`)
-            .join(', '),
+          // extract (TF-IDF) is unavailable on web (jieba-wasm ships no IDF dict).
+          extract:
+            Platform.OS === 'web'
+              ? 'n/a on web'
+              : extract(tagSentence, 5)
+                  .map((k) => `${k.word} (${k.weight.toFixed(2)})`)
+                  .join(', '),
         });
       })
       .catch((e: Error) => setError(e.message));
