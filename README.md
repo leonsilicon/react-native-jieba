@@ -48,11 +48,21 @@ export default {
 
 ## Usage
 
-Call `initJieba()` once before the first segmentation call. On iOS the dictionary path is resolved from the app bundle automatically; on Android it extracts the bundled assets to `filesDir/jieba-dict/` on first run.
+On **native (iOS/Android)** there is no setup — just call `cut`, `tag`, etc. The dictionary is located/extracted automatically: on iOS the path is resolved from the app bundle, and on Android the bundled assets are extracted to `filesDir/jieba-dict/` on the first call.
+
+```ts
+import { cut } from 'react-native-jieba';
+
+cut('我来到北京清华大学');
+// ['我', '来到', '北京', '清华大学']
+```
+
+`prepareJieba()` is an **optional async warm-up** on native: on Android's first run the asset extraction happens off the call site (asynchronously), avoiding a one-time blocking pause on the first `cut`/`tag`. On **web** it is **required** — it loads the `jieba-wasm` binary, which cannot happen synchronously. Use `isJiebaReady()` to check synchronously whether segmentation can run.
 
 ```ts
 import {
-  initJieba,
+  prepareJieba,
+  isJiebaReady,
   cut,
   cutAll,
   cutForSearch,
@@ -60,7 +70,10 @@ import {
   extract,
 } from 'react-native-jieba';
 
-await initJieba();
+// Native: optional warm-up. Web: required (loads wasm).
+await prepareJieba();
+
+isJiebaReady(); // true
 
 cut('我来到北京清华大学');
 // ['我', '来到', '北京', '清华大学']
@@ -80,11 +93,12 @@ extract('我是拖拉机学院手扶拖拉机专业的。', 5);
 
 ## API
 
-On native, all segmentation calls are synchronous JSI calls — no Promises. On web they are synchronous too, but `initJieba()` must finish first (it loads the wasm module).
+On native, all segmentation calls are synchronous JSI calls — no Promises. On web they are synchronous too, but `prepareJieba()` must finish first (it loads the wasm module).
 
 | Function | Signature | Notes |
 | --- | --- | --- |
-| `initJieba(options?)` | `(options?: { wasmUrl?: string \| URL \| Request }) => Promise<void>` | Must be awaited once before any other call. Idempotent. `wasmUrl` is web-only and rarely needed (override where the `.wasm` is served). |
+| `prepareJieba(options?)` | `(options?: { wasmUrl?: string \| URL \| Request }) => Promise<void>` | **Web:** must be awaited once before any other call. **Native:** optional warm-up — calling segmentation directly works too. Idempotent. `wasmUrl` is web-only and rarely needed (override where the `.wasm` is served). |
+| `isJiebaReady()` | `() => boolean` | Synchronous check for whether segmentation can run now. Native-backed (reflects the real engine state, not whether `prepareJieba` was called): `true` on iOS from launch, `true` on Android once the dict is resolved (eagerly via `prepareJieba` or lazily on the first call). |
 | `cut(sentence, hmm?)` | `(string, boolean) => string[]` | Precise mode. `hmm` defaults to `true`. |
 | `cutAll(sentence)` | `(string) => string[]` | Full mode (every possible word). |
 | `cutForSearch(sentence, hmm?)` | `(string, boolean) => string[]` | Search-engine mode. |
@@ -130,15 +144,15 @@ export default defineConfig({
 // App.tsx
 import { useEffect, useState } from 'react';
 import { Platform, Text, View } from 'react-native';
-import { initJieba, cut, cutForSearch, tag, extract } from 'react-native-jieba';
+import { prepareJieba, cut, cutForSearch, tag, extract } from 'react-native-jieba';
 
 export default function App() {
   const [words, setWords] = useState<string[] | null>(null);
 
   useEffect(() => {
-    // On web this loads + instantiates the wasm module (async).
-    // On native it's a near-instant no-op / dict-path setup.
-    initJieba()
+    // On web this loads + instantiates the wasm module (async) and is required.
+    // On native you can skip this and call cut() directly.
+    prepareJieba()
       .then(() => {
         setWords(cut('我来到北京清华大学'));
         // → ['我', '来到', '北京', '清华大学']
@@ -169,16 +183,17 @@ export default function App() {
 To self-host the binary (CDN or custom path), pass `wasmUrl`:
 
 ```ts
-await initJieba({ wasmUrl: 'https://cdn.example.com/jieba_rs_wasm_bg.wasm' });
+await prepareJieba({ wasmUrl: 'https://cdn.example.com/jieba_rs_wasm_bg.wasm' });
 ```
 
 ## How it works
 
 - The Turbo Module lives in `cpp/JiebaImpl.{h,cpp}` and wraps `cppjieba::Jieba` as a JSI Cxx module.
-- iOS resolves the dictionary directory from `NSBundle` in `ios/OnLoad.mm` before the module is registered, so `initJieba()` is a no-op on iOS.
-- Android ships the dictionary as AAR assets and extracts them on demand via `JiebaAndroidHelperModule`, which then hands the path to the C++ module via the codegen-exposed `setDictPath` JSI method.
+- iOS resolves the dictionary directory from `NSBundle` in `ios/OnLoad.mm` before the module is registered, so segmentation works immediately and `prepareJieba()` is a no-op on iOS.
+- Android ships the dictionary as AAR assets and extracts them to `filesDir/jieba-dict/`. This happens automatically: if `prepareJieba()` is never called, the C++ module extracts them synchronously on the first segmentation call via an fbjni call into `JiebaDict.extractDictDirFromNative` (a one-time cost). `prepareJieba()` does the same extraction asynchronously up front (through `JiebaAndroidHelperModule` → the codegen-exposed `setDictPath` JSI method) so that first call doesn't block.
+- `isJiebaReady()` is backed by the codegen-exposed `isReady()` JSI method, which reads the native engine state directly — so it stays correct even when the dictionary is resolved lazily on the first call.
 - cppjieba and its `limonp` dependency are vendored as git submodules under `cpp/cppjieba/`. The published npm tarball contains only the headers and dictionaries that are actually needed at build time.
-- On web, `react-native-web`'s bundler resolution picks up `src/NativeJieba.web.ts` and `src/init.web.ts`. `initJieba()` lazily imports `jieba-wasm`, awaits its async wasm initializer, and routes the JS API to the wasm exports.
+- On web, `react-native-web`'s bundler resolution picks up `src/NativeJieba.web.ts` and `src/init.web.ts`. `prepareJieba()` lazily imports `jieba-wasm`, awaits its async wasm initializer, and routes the JS API to the wasm exports.
 
 ## Contributing
 

@@ -1,6 +1,6 @@
 {
   "name": "react-native-jieba",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Native Chinese text segmentation for React Native, powered by cppjieba.",
   "main": "./lib/module/index.js",
   "types": "./lib/typescript/src/index.d.ts",
@@ -23,6 +23,8 @@
     "ios/generated",
     "cpp/JiebaImpl.h",
     "cpp/JiebaImpl.cpp",
+    "cpp/JiebaDictAndroid.h",
+    "cpp/JiebaDictAndroid.cpp",
     "cpp/cppjieba/LICENSE",
     "cpp/cppjieba/include/cppjieba",
     "cpp/cppjieba/deps/limonp/LICENSE",

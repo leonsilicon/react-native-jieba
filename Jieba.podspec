@@ -14,6 +14,8 @@ Pod::Spec.new do |s|
   s.source       = { :git => "https://github.com/leonsilicon/react-native-jieba.git", :tag => "#{s.version}" }
 
   s.source_files = "ios/**/*.{h,m,mm}", "cpp/*.{hpp,cpp,c,h}", "ios/generated/*.{h,cpp,mm}"
+  # JiebaDictAndroid.{cpp,h} depend on fbjni and are Android-only.
+  s.exclude_files = "cpp/JiebaDictAndroid.{cpp,h}"
   s.private_header_files = "ios/**/*.h"
 
   s.resources = ["cpp/cppjieba/dict/*.utf8"]

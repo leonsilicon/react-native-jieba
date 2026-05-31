@@ -1,5 +1,9 @@
 #include "JiebaImpl.h"
 
+#ifdef __ANDROID__
+#include "JiebaDictAndroid.h"
+#endif
+
 #include <cppjieba/Jieba.hpp>
 
 #include <memory>
@@ -58,6 +62,14 @@ void JiebaImpl::setDictPathFromNative(const std::string& dictPath) {
   }
 }
 
+bool JiebaImpl::isReady(jsi::Runtime& rt) {
+  std::lock_guard<std::mutex> lock(dictMutex());
+  // Ready once the engine is constructed, or once a dict path is resolved (the
+  // engine is then built lazily on first use). On iOS the path is set at +load;
+  // on Android it is set eagerly by prepareJieba or lazily on the first call.
+  return jiebaStorage() != nullptr || !dictPathStorage().empty();
+}
+
 void JiebaImpl::setDictPath(jsi::Runtime& rt, jsi::String path) {
   setDictPathFromNative(path.utf8(rt));
 }
@@ -65,6 +77,17 @@ void JiebaImpl::setDictPath(jsi::Runtime& rt, jsi::String path) {
 cppjieba::Jieba& JiebaImpl::getJieba() {
   std::lock_guard<std::mutex> lock(dictMutex());
   if (!jiebaStorage()) {
+#ifdef __ANDROID__
+    // If prepareJieba() was never awaited, extract the bundled assets now (a
+    // one-time, synchronous cost on the very first call) so callers don't have
+    // to call prepareJieba at all.
+    if (dictPathStorage().empty()) {
+      std::string extracted = extractJiebaDictDirAndroid();
+      if (!extracted.empty()) {
+        dictPathStorage() = extracted;
+      }
+    }
+#endif
     const std::string& base = dictPathStorage();
     if (base.empty()) {
       throw std::runtime_error(

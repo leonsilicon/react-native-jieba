@@ -6,7 +6,8 @@ import {
   cutForSearch,
   tag,
   extract,
-  initJieba,
+  prepareJieba,
+  isJiebaReady,
 } from 'react-native-jieba';
 
 const sentence = '我来到北京清华大学';
@@ -15,11 +16,13 @@ const tagSentence =
   '我是拖拉机学院手扶拖拉机专业的。不用多久，我就会升职加薪，当上CEO，走上人生巅峰。';
 
 type Results = {
+  readyBefore: string;
   cut: string;
   cutAll: string;
   cutForSearch: string;
   tag: string;
   extract: string;
+  readyAfter: string;
 };
 
 function Section({ title, value }: { title: string; value: string }) {
@@ -38,9 +41,16 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    initJieba()
+    // Web *requires* prepareJieba (loads wasm). Native does not: we call cut()
+    // directly below to show the dictionary is resolved lazily on first use.
+    const ready = Platform.OS === 'web' ? prepareJieba() : Promise.resolve();
+    ready
       .then(() => {
+        // On Android cold start this is false until the first segmentation call
+        // lazily extracts the dict; on iOS it's true from launch.
+        const readyBefore = isJiebaReady();
         setResults({
+          readyBefore: String(readyBefore),
           cut: cut(sentence).join(' / '),
           cutAll: cutAll(sentence).join(' / '),
           cutForSearch: cutForSearch(longer).join(' / '),
@@ -54,6 +64,8 @@ export default function App() {
               : extract(tagSentence, 5)
                   .map((k) => `${k.word} (${k.weight.toFixed(2)})`)
                   .join(', '),
+          // After a segmentation call the engine is always ready.
+          readyAfter: String(isJiebaReady()),
         });
       })
       .catch((e: Error) => setError(e.message));
@@ -70,11 +82,19 @@ export default function App() {
       {!results && !error && <Text>Initializing…</Text>}
       {results && (
         <>
+          <Section
+            title="isJiebaReady (before cut)"
+            value={results.readyBefore}
+          />
           <Section title="Cut" value={results.cut} />
           <Section title="CutAll" value={results.cutAll} />
           <Section title="CutForSearch" value={results.cutForSearch} />
           <Section title="Tag" value={results.tag} />
           <Section title="Extract" value={results.extract} />
+          <Section
+            title="isJiebaReady (after cut)"
+            value={results.readyAfter}
+          />
         </>
       )}
     </ScrollView>

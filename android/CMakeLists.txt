@@ -6,6 +6,7 @@ set (CMAKE_VERBOSE_MAKEFILE ON)
 add_library(
     react-native-jieba    STATIC
     ../cpp/JiebaImpl.cpp
+    ../cpp/JiebaDictAndroid.cpp
 )
 
 set_target_properties(
@@ -26,4 +27,5 @@ target_link_libraries(
     react-native-jieba    jsi
     reactnative
     react_codegen_JiebaSpec
+    fbjni
 )

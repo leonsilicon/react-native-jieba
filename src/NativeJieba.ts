@@ -1,6 +1,7 @@
 import { TurboModuleRegistry, type TurboModule } from 'react-native';
 
 export interface Spec extends TurboModule {
+  isReady(): boolean;
   setDictPath(path: string): void;
   cut(sentence: string, hmm: boolean): string[];
   cutAll(sentence: string): string[];

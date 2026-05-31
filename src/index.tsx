@@ -10,4 +10,5 @@ export {
   find,
 } from './jieba';
 export type { Tagged, Keyword } from './jieba';
-export { initJieba } from './init';
+export { prepareJieba, isJiebaReady } from './init';
+export type { PrepareJiebaOptions } from './init';

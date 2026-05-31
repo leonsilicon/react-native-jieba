@@ -3,7 +3,7 @@ import type { Spec } from './NativeJieba';
 // `jieba-wasm` exposes the same segmentation primitives as cppjieba, but a
 // smaller surface: cut / cutAll / cutForSearch / tag / add_word. The remaining
 // native methods are polyfilled on top of those where the semantics allow, and
-// throw otherwise. The wasm module is loaded lazily by `initJieba()` (see
+// throw otherwise. The wasm module is loaded lazily by `prepareJieba()` (see
 // `init.web.ts`) and handed to this shim via `setJiebaWasm`.
 
 export type JiebaWasmModule = {
@@ -23,17 +23,25 @@ export function setJiebaWasm(module: JiebaWasmModule): void {
   wasm = module;
 }
 
+export function isJiebaWasmReady(): boolean {
+  return wasm !== null;
+}
+
 function getWasm(): JiebaWasmModule {
   if (!wasm) {
     throw new Error(
-      'react-native-jieba: jieba-wasm is not initialized. ' +
-        'Call (and await) initJieba() before any segmentation call.'
+      'react-native-jieba: jieba-wasm is not loaded yet. ' +
+        'On web you must call (and await) prepareJieba() before any ' +
+        'segmentation call.'
     );
   }
   return wasm;
 }
 
 const Jieba: Spec = {
+  isReady() {
+    return isJiebaWasmReady();
+  },
   setDictPath() {
     // No-op on web: jieba-wasm bundles its own dictionary.
   },

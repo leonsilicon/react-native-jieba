@@ -19,6 +19,7 @@ public:
 
   static void setDictPathFromNative(const std::string& dictPath);
 
+  bool isReady(jsi::Runtime& rt);
   void setDictPath(jsi::Runtime& rt, jsi::String path);
   jsi::Array cut(jsi::Runtime& rt, jsi::String sentence, bool hmm);
   jsi::Array cutAll(jsi::Runtime& rt, jsi::String sentence);

@@ -1,13 +1,29 @@
-import { setJiebaWasm, type JiebaWasmModule } from './NativeJieba.web';
-import type { InitJiebaOptions } from './init';
+import {
+  setJiebaWasm,
+  isJiebaWasmReady,
+  type JiebaWasmModule,
+} from './NativeJieba.web';
 
-export type { InitJiebaOptions } from './init';
+export type PrepareJiebaOptions = {
+  /**
+   * URL (or fetch input) for the jieba-wasm `.wasm` binary. Most bundlers
+   * resolve it automatically, so this is only needed when the asset is served
+   * from a custom location.
+   */
+  wasmUrl?: string | URL | Request;
+};
 
-let initPromise: Promise<void> | null = null;
+let preparePromise: Promise<void> | null = null;
 
-export function initJieba(options: InitJiebaOptions = {}): Promise<void> {
-  if (initPromise) return initPromise;
-  initPromise = (async () => {
+/**
+ * **Required on web**: loads and instantiates the `jieba-wasm` binary (which
+ * cannot be done synchronously). Await it once before calling `cut`, `tag`, etc.
+ *
+ * Idempotent: repeated calls return the same promise.
+ */
+export function prepareJieba(options: PrepareJiebaOptions = {}): Promise<void> {
+  if (preparePromise) return preparePromise;
+  preparePromise = (async () => {
     // `jieba-wasm` resolves to its `web` build under the `browser`/`import`
     // conditions, whose default export is an async initializer that fetches
     // and instantiates the wasm binary.
@@ -25,8 +41,13 @@ export function initJieba(options: InitJiebaOptions = {}): Promise<void> {
     await wasm.default(options.wasmUrl);
     setJiebaWasm(wasm);
   })().catch((err) => {
-    initPromise = null;
+    preparePromise = null;
     throw err;
   });
-  return initPromise;
+  return preparePromise;
+}
+
+/** Whether the wasm module has been loaded and jieba can segment. */
+export function isJiebaReady(): boolean {
+  return isJiebaWasmReady();
 }

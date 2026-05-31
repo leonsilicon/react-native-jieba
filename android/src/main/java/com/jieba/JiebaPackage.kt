@@ -8,6 +8,10 @@ import com.facebook.react.module.model.ReactModuleInfoProvider
 
 class JiebaPackage : BaseReactPackage() {
   override fun getModule(name: String, reactContext: ReactApplicationContext): NativeModule? {
+    // Capture an application context as early as possible so the C++ module can
+    // lazily extract the bundled dictionaries on first use without requiring a
+    // call to prepareJieba().
+    JiebaDict.setContext(reactContext)
     return if (name == JiebaAndroidHelperModule.NAME) {
       JiebaAndroidHelperModule(reactContext)
     } else {
