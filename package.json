@@ -15,6 +15,9 @@
   "files": [
     "src",
     "lib",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE",
     "android/build.gradle",
     "android/CMakeLists.txt",
     "android/generated",
