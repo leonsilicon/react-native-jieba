@@ -6,8 +6,8 @@
 #include <mutex>
 #include <string>
 
-namespace cppjieba {
-class Jieba;
+namespace rnjieba {
+class JiebaEngine;
 }
 
 namespace facebook::react {
@@ -32,7 +32,7 @@ public:
   bool find(jsi::Runtime& rt, jsi::String word);
 
 private:
-  cppjieba::Jieba& getJieba();
+  rnjieba::JiebaEngine& getJieba();
 };
 
 }

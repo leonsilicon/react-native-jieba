@@ -18,7 +18,21 @@ Pod::Spec.new do |s|
   s.exclude_files = "cpp/JiebaDictAndroid.{cpp,h}"
   s.private_header_files = "ios/**/*.h"
 
-  s.resources = ["cpp/cppjieba/dict/*.utf8"]
+  # The IDF dictionary (~5MB) is only read by `extract()` (TF-IDF keyword extraction). Apps that
+  # only tokenize can drop it from the bundle by setting RN_JIEBA_EXCLUDE_IDF_DICT=1 in the
+  # environment that evaluates the Podfile, e.g.
+  #
+  #   ENV["RN_JIEBA_EXCLUDE_IDF_DICT"] = "1"   # in the Podfile, before use_react_native!
+  #
+  # `extract()` then throws a descriptive error, exactly as it already does on web (jieba-wasm
+  # ships no IDF data). Every other API is unaffected.
+  exclude_idf_dict = ENV["RN_JIEBA_EXCLUDE_IDF_DICT"] == "1"
+  dict_files = Dir.glob(File.join(__dir__, "cpp/cppjieba/dict/*.utf8")).map do |path|
+    "cpp/cppjieba/dict/#{File.basename(path)}"
+  end
+  dict_files.reject! { |path| File.basename(path) == "idf.utf8" } if exclude_idf_dict
+
+  s.resources = dict_files
 
   s.pod_target_xcconfig = {
     "HEADER_SEARCH_PATHS" => [
