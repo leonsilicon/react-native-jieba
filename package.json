@@ -1,6 +1,6 @@
 {
   "name": "react-native-jieba",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Native Chinese text segmentation for React Native, powered by cppjieba.",
   "main": "./lib/module/index.js",
   "types": "./lib/typescript/src/index.d.ts",
@@ -55,7 +55,8 @@
     "test": "jest",
     "release": "release-it --only-version",
     "web": "vite",
-    "build:web": "vite build"
+    "build:web": "vite build",
+    "prepack": "node ./scripts/verify-pack-contents.mjs"
   },
   "keywords": [
     "react-native",
