@@ -6,6 +6,7 @@ set (CMAKE_VERBOSE_MAKEFILE ON)
 add_library(
     react-native-jieba    STATIC
     ../cpp/JiebaImpl.cpp
+    ../cpp/JiebaEngine.cpp
     ../cpp/JiebaDictAndroid.cpp
 )
 

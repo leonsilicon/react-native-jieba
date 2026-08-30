@@ -3,7 +3,7 @@
 Native Chinese text segmentation for React Native, powered by [cppjieba](https://github.com/yanyiwu/cppjieba).
 
 - Runs on the New Architecture as a C++ Turbo Module — no bridge overhead, no JS port of jieba.
-- Ships the cppjieba dictionaries (`jieba.dict.utf8`, `hmm_model.utf8`, `idf.utf8`, `stop_words.utf8`, `user.dict.utf8`) inside the package, bundled as iOS pod resources and Android assets.
+- Ships the cppjieba dictionaries (`jieba.dict.utf8`, `hmm_model.utf8`, `idf.utf8`, `stop_words.utf8`, `user.dict.utf8`) inside the package, bundled as iOS pod resources and Android assets. The ~5.7 MB `idf.utf8` is loaded lazily and [can be excluded entirely](#reducing-app-size-excluding-the-idf-dictionary) in apps that never call `extract()`.
 - Supports the standard jieba modes: precise (`cut`), full (`cutAll`), search engine (`cutForSearch`), HMM (`cutHMM`), small-word (`cutSmall`), POS tagging (`tag`), and TF-IDF keyword extraction (`extract`).
 - Works on **web** (react-native-web) via [`jieba-wasm`](https://github.com/fengkx/jieba-wasm), with the same API.
 
@@ -105,7 +105,7 @@ On native, all segmentation calls are synchronous JSI calls — no Promises. On 
 | `cutHMM(sentence)` | `(string) => string[]` | HMM-only segmentation. |
 | `cutSmall(sentence, maxWordLen)` | `(string, number) => string[]` | Limits the maximum word length. |
 | `tag(sentence)` | `(string) => Array<{ word, tag }>` | Part-of-speech tagging. |
-| `extract(sentence, topK?)` | `(string, number) => Array<{ word, weight }>` | TF-IDF keyword extraction. `topK` defaults to `5`. |
+| `extract(sentence, topK?)` | `(string, number) => Array<{ word, weight }>` | TF-IDF keyword extraction. `topK` defaults to `5`. Loads the IDF dictionary on first use; throws on web, and in native builds that [excluded it](#reducing-app-size-excluding-the-idf-dictionary). |
 | `insertUserWord(word, tag?)` | `(string, string) => boolean` | Adds a user dictionary word at runtime. |
 | `find(word)` | `(string) => boolean` | Tests whether a word is in the dictionary. |
 
@@ -186,9 +186,48 @@ To self-host the binary (CDN or custom path), pass `wasmUrl`:
 await prepareJieba({ wasmUrl: 'https://cdn.example.com/jieba_rs_wasm_bg.wasm' });
 ```
 
+## Reducing app size: excluding the IDF dictionary
+
+The bundled dictionaries account for most of this library's footprint, and `idf.utf8` is the
+largest single file at **~5.7 MB**. It is read by exactly one API — `extract()`, TF-IDF keyword
+extraction. Apps that only segment text (`cut`, `cutForSearch`, `tag`, …) never touch it.
+
+The extractor is built lazily on first use, so the dictionary costs nothing at startup either way.
+If your app never calls `extract()`, you can also drop the file from your binary entirely:
+
+**iOS** — set the environment variable before CocoaPods evaluates the podspec, e.g. at the top of
+your `Podfile`:
+
+```rb
+ENV['RN_JIEBA_EXCLUDE_IDF_DICT'] = '1'
+```
+
+Then reinstall pods (`bundle exec pod install`).
+
+**Android** — set a Gradle property in `android/gradle.properties`:
+
+```properties
+rnJiebaExcludeIdfDict=true
+```
+
+(or `ext.rnJiebaExcludeIdfDict = true` in `android/build.gradle`, or pass
+`-PrnJiebaExcludeIdfDict=true` on the command line).
+
+With the dictionary excluded, `extract()` throws a descriptive error and **every other API keeps
+working unchanged** — the same contract that already applies on web, where `extract()` is
+unsupported because jieba-wasm ships no IDF data. Guard it as you would for web:
+
+```ts
+const keywords = canExtract ? extract(sentence, 5) : [];
+```
+
+On Android this also skips copying the file out of the APK into `filesDir/jieba-dict/` on first
+run, saving the same ~5.7 MB of user device storage and shortening first-call extraction.
+
 ## How it works
 
-- The Turbo Module lives in `cpp/JiebaImpl.{h,cpp}` and wraps `cppjieba::Jieba` as a JSI Cxx module.
+- The Turbo Module lives in `cpp/JiebaImpl.{h,cpp}` and exposes the engine as a JSI Cxx module.
+- `cpp/JiebaEngine.{h,cpp}` composes cppjieba's primitives (one shared `DictTrie` + `HMMModel` across every segmenter) instead of using the `cppjieba::Jieba` facade. The facade holds a `KeywordExtractor` **by value**, so constructing it always loads `idf.utf8` and hard-fails when that file is absent; composing the pieces directly is what lets the extractor — and its dictionary — be built only if `extract()` is called.
 - iOS resolves the dictionary directory from `NSBundle` in `ios/OnLoad.mm` before the module is registered, so segmentation works immediately and `prepareJieba()` is a no-op on iOS.
 - Android ships the dictionary as AAR assets and extracts them to `filesDir/jieba-dict/`. This happens automatically: if `prepareJieba()` is never called, the C++ module extracts them synchronously on the first segmentation call via an fbjni call into `JiebaDict.extractDictDirFromNative` (a one-time cost). `prepareJieba()` does the same extraction asynchronously up front (through `JiebaAndroidHelperModule` → the codegen-exposed `setDictPath` JSI method) so that first call doesn't block.
 - `isJiebaReady()` is backed by the codegen-exposed `isReady()` JSI method, which reads the native engine state directly — so it stays correct even when the dictionary is resolved lazily on the first call.

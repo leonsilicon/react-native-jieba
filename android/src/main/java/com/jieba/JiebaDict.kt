@@ -21,13 +21,23 @@ import java.io.FileOutputStream
 object JiebaDict {
   const val DICT_DIR_NAME = "jieba-dict"
 
-  val DICT_FILES = arrayOf(
-    "jieba.dict.utf8",
-    "hmm_model.utf8",
-    "user.dict.utf8",
-    "idf.utf8",
-    "stop_words.utf8",
-  )
+  /** The IDF dictionary, needed only by `extract()` (TF-IDF keyword extraction). */
+  const val IDF_DICT_FILE = "idf.utf8"
+
+  /**
+   * Dictionary assets to extract.
+   *
+   * [IDF_DICT_FILE] is omitted when the library was built with `rnJiebaExcludeIdfDict=true`, since
+   * the asset is then not packaged at all and opening it would throw. `extract()` reports the
+   * omission with a descriptive error; every other API is unaffected.
+   */
+  val DICT_FILES: Array<String> = buildList {
+    add("jieba.dict.utf8")
+    add("hmm_model.utf8")
+    add("user.dict.utf8")
+    if (!BuildConfig.RN_JIEBA_EXCLUDE_IDF_DICT) add(IDF_DICT_FILE)
+    add("stop_words.utf8")
+  }.toTypedArray()
 
   /**
    * Application context captured at module construction so the native (C++)

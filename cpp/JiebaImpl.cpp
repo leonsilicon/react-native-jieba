@@ -4,7 +4,7 @@
 #include "JiebaDictAndroid.h"
 #endif
 
-#include <cppjieba/Jieba.hpp>
+#include "JiebaEngine.h"
 
 #include <memory>
 #include <mutex>
@@ -27,8 +27,8 @@ std::string& dictPathStorage() {
   return p;
 }
 
-std::unique_ptr<cppjieba::Jieba>& jiebaStorage() {
-  static std::unique_ptr<cppjieba::Jieba> j;
+std::unique_ptr<rnjieba::JiebaEngine>& jiebaStorage() {
+  static std::unique_ptr<rnjieba::JiebaEngine> j;
   return j;
 }
 
@@ -74,7 +74,7 @@ void JiebaImpl::setDictPath(jsi::Runtime& rt, jsi::String path) {
   setDictPathFromNative(path.utf8(rt));
 }
 
-cppjieba::Jieba& JiebaImpl::getJieba() {
+rnjieba::JiebaEngine& JiebaImpl::getJieba() {
   std::lock_guard<std::mutex> lock(dictMutex());
   if (!jiebaStorage()) {
 #ifdef __ANDROID__
@@ -95,7 +95,9 @@ cppjieba::Jieba& JiebaImpl::getJieba() {
         "The native module failed to locate bundled dict files."
       );
     }
-    jiebaStorage() = std::make_unique<cppjieba::Jieba>(
+    // The IDF path is recorded but NOT read here: JiebaEngine loads it only if extract() is
+    // called, so a build that omits idf.utf8 still tokenizes normally.
+    jiebaStorage() = std::make_unique<rnjieba::JiebaEngine>(
       joinPath(base, "jieba.dict.utf8"),
       joinPath(base, "hmm_model.utf8"),
       joinPath(base, "user.dict.utf8"),
@@ -153,7 +155,7 @@ jsi::Array JiebaImpl::tag(jsi::Runtime& rt, jsi::String sentence) {
 jsi::Array JiebaImpl::extract(jsi::Runtime& rt, jsi::String sentence, double topK) {
   std::vector<cppjieba::KeywordExtractor::Word> keywords;
   size_t n = topK <= 0 ? 5 : static_cast<size_t>(topK);
-  getJieba().extractor.Extract(sentence.utf8(rt), keywords, n);
+  getJieba().Extractor().Extract(sentence.utf8(rt), keywords, n);
   jsi::Array arr(rt, keywords.size());
   for (size_t i = 0; i < keywords.size(); ++i) {
     jsi::Object obj(rt);

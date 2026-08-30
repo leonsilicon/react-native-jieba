@@ -2,6 +2,14 @@ buildscript {
   ext.safeExtGet = { prop, fallback ->
     rootProject.ext.has(prop) ? rootProject.ext.get(prop) : fallback
   }
+  // Resolves a flag from either `ext` (…/build.gradle: ext.rnJiebaExcludeIdfDict = true) or a
+  // Gradle property (gradle.properties: rnJiebaExcludeIdfDict=true / -PrnJiebaExcludeIdfDict=true),
+  // so consumers can set it whichever way their project already configures native modules.
+  ext.safeFlagGet = { prop, fallback ->
+    if (rootProject.ext.has(prop)) return rootProject.ext.get(prop).toString()
+    if (rootProject.hasProperty(prop)) return rootProject.property(prop).toString()
+    return fallback
+  }
   repositories {
     google()
     mavenCentral()
@@ -24,6 +32,11 @@ android {
   defaultConfig {
     minSdk safeExtGet('minSdkVersion', 24)
     targetSdk safeExtGet('targetSdkVersion', 35)
+    buildConfigField(
+      "boolean",
+      "RN_JIEBA_EXCLUDE_IDF_DICT",
+      safeFlagGet('rnJiebaExcludeIdfDict', 'false')
+    )
     externalNativeBuild {
       cmake {
         cppFlags "-std=c++20"
@@ -51,6 +64,25 @@ android {
     main {
       java.srcDirs += "generated/java"
       assets.srcDirs += "$projectDir/../cpp/cppjieba/dict"
+    }
+  }
+
+  // The IDF dictionary (~5MB) is only read by `extract()` (TF-IDF keyword extraction). Apps that
+  // only tokenize can drop it from the APK/AAB with:
+  //
+  //   rnJiebaExcludeIdfDict=true             # in android/gradle.properties, or
+  //   ext.rnJiebaExcludeIdfDict = true       # in android/build.gradle
+  //
+  // `extract()` then throws a descriptive error, exactly as it already does on web (jieba-wasm
+  // ships no IDF data). Every other API is unaffected. BuildConfig carries the same flag through to
+  // JiebaDict so the extractor does not try to copy a file that was never packaged.
+  buildFeatures {
+    buildConfig true
+  }
+
+  if (safeFlagGet('rnJiebaExcludeIdfDict', 'false') == 'true') {
+    androidResources {
+      ignoreAssetsPattern "idf.utf8"
     }
   }
 }
